@@ -1,0 +1,69 @@
+server:
+  port: 4082
+
+spring:
+  application:
+    name: ledger-plan-user
+  autoconfigure:
+    # common 传递引入 Redisson starter，其 ConnectionFactory 与 Sa-Token 的 pExpire 调用不兼容；
+    # user 模块使用 Spring Boot 默认的 Lettuce，本地与生产都无需 Redisson。
+    exclude:
+      - org.redisson.spring.starter.RedissonAutoConfigurationV2
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+        enabled: ${NACOS_DISCOVERY_ENABLED:false}
+      config:
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+        file-extension: yml
+        enabled: ${NACOS_CONFIG_ENABLED:false}
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/ledger_plan?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: ${MYSQL_PASSWORD:123456}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 2
+      connection-timeout: 30000
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      # 本地 Redis 无密码；有密码的环境通过外部配置补充 spring.data.redis.password
+      timeout: 3s
+
+sa-token:
+  token-name: satoken
+  timeout: 604800
+  active-timeout: -1
+  is-concurrent: true
+  is-share: false
+  token-style: uuid
+  is-read-cookie: false
+  is-read-header: true
+  is-log: false
+
+ledger-plan:
+  auth:
+    default-timeout-seconds: 604800
+    remember-me-timeout-seconds: 2592000
+  email:
+    provider: ${LEDGER_EMAIL_PROVIDER:log}
+    from: ${LEDGER_EMAIL_FROM:no-reply@ledgerplan.local}
+    subject: LedgerPlan 登录验证码
+    code-length: 6
+    expire-minutes: 5
+    resend-interval-seconds: 60
+    max-attempts: 5
+    host: ${LEDGER_EMAIL_HOST:localhost}
+    port: ${LEDGER_EMAIL_PORT:25}
+    username: ${LEDGER_EMAIL_USERNAME:}
+    password: ${LEDGER_EMAIL_PASSWORD:}
+    ssl: false
+    starttls: false
+
+logging:
+  level:
+    cn.cosx.ledgerplan: info

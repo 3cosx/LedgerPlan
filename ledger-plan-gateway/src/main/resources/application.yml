@@ -1,0 +1,56 @@
+server:
+  port: 4080
+
+spring:
+  application:
+    name: ledger-plan-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+        enabled: ${NACOS_DISCOVERY_ENABLED:false}
+      config:
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+        file-extension: yml
+        enabled: ${NACOS_CONFIG_ENABLED:false}
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: ledger-plan-user
+              uri: "${USER_SERVICE_URI:http://localhost:4082}"
+              predicates:
+                - Path=/auth/**,/user/**
+            - id: ledger-plan-business
+              uri: "${BUSINESS_SERVICE_URI:http://localhost:4083}"
+              predicates:
+                - Path=/ledger/**,/account/**,/transaction/**,/category/**,/budget/**,/report/**
+          globalcors:
+            add-to-simple-url-handler-mapping: true
+            cors-configurations:
+              '[/**]':
+                allowed-origin-patterns: ${CORS_ALLOWED_ORIGIN_PATTERNS:*}
+                allowed-methods: "*"
+                allowed-headers: "*"
+                exposed-headers: "satoken"
+                allow-credentials: true
+                max-age: 3600
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      # 本地 Redis 无密码；有密码的环境通过外部配置补充 spring.data.redis.password
+      timeout: 3s
+
+sa-token:
+  token-name: satoken
+  timeout: 604800
+  active-timeout: -1
+  is-concurrent: true
+  is-share: false
+  token-style: uuid
+  is-log: false
+
+logging:
+  level:
+    cn.cosx.ledgerplan: info
