@@ -1,6 +1,6 @@
 package cn.cosx.ledgerplan.user.support;
 
-import cn.cosx.ledgerplan.common.web.ErrorCode;
+import cn.cosx.ledgerplan.common.tool.ErrorCode;
 
 public enum UserErrorCode implements ErrorCode {
 

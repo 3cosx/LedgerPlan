@@ -2,7 +2,7 @@ package cn.cosx.ledgerplan.user.controller;
 
 import cn.dev33.satoken.annotation.SaCheckLogin;
 import cn.dev33.satoken.stp.StpUtil;
-import cn.cosx.ledgerplan.common.web.Result;
+import cn.cosx.ledgerplan.common.tool.Result;
 import cn.cosx.ledgerplan.user.dto.UpdateProfileRequest;
 import cn.cosx.ledgerplan.user.dto.UserVO;
 import cn.cosx.ledgerplan.user.service.AuthService;

@@ -1,6 +1,6 @@
 package cn.cosx.ledgerplan.common.exception;
 
-import cn.cosx.ledgerplan.common.web.ErrorCode;
+import cn.cosx.ledgerplan.common.tool.ErrorCode;
 
 import java.io.Serial;
 

@@ -1,7 +1,7 @@
 package cn.cosx.ledgerplan.user.controller;
 
 import cn.dev33.satoken.annotation.SaCheckLogin;
-import cn.cosx.ledgerplan.common.web.Result;
+import cn.cosx.ledgerplan.common.tool.Result;
 import cn.cosx.ledgerplan.user.dto.EmailLoginRequest;
 import cn.cosx.ledgerplan.user.dto.LoginVO;
 import cn.cosx.ledgerplan.user.dto.SendCodeRequest;

@@ -34,6 +34,18 @@ mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
 
+springdoc:
+  # springdoc 2.3.0 与 Spring Framework 6.2 的 ControllerAdviceBean 不兼容，
+  # 关闭通用响应覆盖以避免扫描 @RestControllerAdvice。
+  override-with-generic-response: false
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+    display-request-duration: true
+
 logging:
   level:
     cn.cosx.ledgerplan: info

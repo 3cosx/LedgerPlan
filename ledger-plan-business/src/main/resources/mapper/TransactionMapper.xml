@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.cosx.ledgerplan.business.transaction.domain.mapper.TransactionMapper">
+
+    <select id="listLedgerTransactions"
+            resultType="cn.cosx.ledgerplan.business.transaction.dto.TransactionAndCategoryDTO">
+        SELECT t.id,
+        t.ledger_id,
+        l.ledger_name,
+        t.category_id,
+        c.category_name,
+        t.pay_channel,
+        t.type,
+        t.amount,
+        t.transaction_time,
+        t.remark,
+        t.tags,
+        t.attach_url,
+        t.created_at,
+        t.updated_at
+        FROM `transaction` t
+        INNER JOIN ledger l ON l.id = t.ledger_id AND l.is_deleted = 0
+        LEFT JOIN category c ON c.id = t.category_id AND c.is_deleted = 0
+        WHERE t.is_deleted = 0
+        AND t.ledger_id = #{ledgerId}
+        <if test="type != null">
+            AND t.type = #{type}
+        </if>
+        <if test="categoryId != null">
+            AND t.category_id = #{categoryId}
+        </if>
+        <if test="payChannel != null">
+            AND t.pay_channel = #{payChannel}
+        </if>
+        <if test="startTime != null">
+            AND t.transaction_time <![CDATA[>=]]> #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND t.transaction_time <![CDATA[<=]]> #{endTime}
+        </if>
+        <if test="lastLedgerId != null">
+            AND t.id <![CDATA[>=]]> #{lastLedgerId}
+        </if>
+        ORDER BY t.transaction_time DESC, t.id DESC
+        <if test="size != null">
+            limit #{size}
+        </if>
+    </select>
+
+</mapper>

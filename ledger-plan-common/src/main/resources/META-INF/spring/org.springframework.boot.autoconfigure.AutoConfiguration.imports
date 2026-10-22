@@ -1,2 +1,3 @@
+cn.cosx.ledgerplan.common.config.LedgerPlanExecutorAutoConfiguration
 cn.cosx.ledgerplan.common.config.LedgerPlanMybatisPlusAutoConfiguration
 cn.cosx.ledgerplan.common.config.LedgerPlanWebAutoConfiguration

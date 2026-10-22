@@ -2,7 +2,7 @@ package cn.cosx.ledgerplan.common.config;
 
 import cn.cosx.ledgerplan.common.context.UserContextInterceptor;
 import cn.cosx.ledgerplan.common.context.UserContextWebMvcConfigurer;
-import cn.cosx.ledgerplan.common.web.GlobalExceptionHandler;
+import cn.cosx.ledgerplan.common.tool.GlobalExceptionHandler;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;

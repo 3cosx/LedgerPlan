@@ -1,7 +1,7 @@
 package cn.cosx.ledgerplan.common.context;
 
 import cn.cosx.ledgerplan.common.exception.BizException;
-import cn.cosx.ledgerplan.common.web.CommonErrorCode;
+import cn.cosx.ledgerplan.common.tool.CommonErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.util.StringUtils;

@@ -1,7 +1,7 @@
 package cn.cosx.ledgerplan.common.context;
 
 import cn.cosx.ledgerplan.common.exception.BizException;
-import cn.cosx.ledgerplan.common.web.CommonErrorCode;
+import cn.cosx.ledgerplan.common.tool.CommonErrorCode;
 
 /**
  * 当前请求的用户上下文持有者。
