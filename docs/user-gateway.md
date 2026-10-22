@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | `ledger-plan-user` | 4082 | 邮箱验证码登录、首次登录自动注册、Sa-Token 会话、用户资料、RBAC 角色/权限读取 |
 | `ledger-plan-gateway` | 4080 | 统一转发、Sa-Token 登录校验、RBAC 权限校验、CORS、统一错误响应 |
-| `ledger-plan-business` | 4083 | 业务服务（当前仅作为网关路由目标，尚未实现） |
+| `ledger-plan-business` | 4083 | 业务服务（基础包结构、启动类已建，用户上下文由 common 自动配置，业务接口待实现） |
 
 登录链路：
 
@@ -143,6 +143,16 @@ export JAVA_HOME=F:/java-study/jdk/Java/jdk-21
 mvn -o clean package -DskipTests
 ```
 
+> 本机沙箱下全局 Maven 仓库不可写，新网关 starter 的构件放在项目 `.m2-local`。如果 `clean` 插件在离线仓库中缺失，
+> 先手动删除各模块的 `target`，再用下面的命令构建（`tail` 指向全局仓库作为兜底）：
+>
+> ```bash
+> rm -rf ledger-plan-*/target
+> mvn -o -Dmaven.repo.local=.m2-local \
+>   -Dmaven.repo.local.tail=F:/java-study/Maven/repository \
+>   package -DskipTests
+> ```
+
 启动顺序：
 
 ```bash
@@ -152,7 +162,10 @@ F:/java-study/redis/Redis-x64-3.2.100/redis-server.exe
 # 2. user
 java -jar ledger-plan-user/target/ledger-plan-user-0.0.1-SNAPSHOT.jar
 
-# 3. gateway
+# 3. business
+java -jar ledger-plan-business/target/ledger-plan-business-0.0.1-SNAPSHOT.jar
+
+# 4. gateway
 java -jar ledger-plan-gateway/target/ledger-plan-gateway-0.0.1-SNAPSHOT.jar
 ```
 
@@ -205,7 +218,7 @@ Content-Type: application/json
     "email": "test@example.com",
     "nickname": "test",
     "roles": ["NORMAL"],
-    "permissions": ["account:read", "account:write", "ledger:read", "ledger:write", "report:read"],
+    "permissions": ["bookkeeping:manage"],
     "token": "b7166ec7-6e16-4d2f-87f1-cac7bf0cd7da",
     "tokenTimeout": 2592000
   }
@@ -233,22 +246,23 @@ PUT  /user/profile     # 需要登录，body: {"nickname":"新昵称","avatar":"
 
 | 角色 | 说明 | 默认权限 |
 | --- | --- | --- |
-| `NORMAL` | 普通用户 | `ledger:read`、`ledger:write`、`account:read`、`account:write`、`report:read` |
-| `MEMBER` | 会员 | 普通用户权限 + `report:export`、`budget:manage` |
-| `ADMIN` | 管理员 | 全部权限（含 `admin:manage`、`user:manage`） |
+| `NORMAL` | 普通用户 | `bookkeeping:manage`（记账） |
+| `MEMBER` | 会员 | `bookkeeping:manage`、`plan:manage`（记账 + 计划规划） |
+| `ADMIN` | 管理员 | 全部权限（记账、计划规划、Agent 执行） |
 
 首次登录自动注册的用户默认分配 `NORMAL`。角色和权限关系维护在 `t_role_permission`，用户和角色关系维护在 `t_user_role`。
+
+旧版权限点升级到当前三权限模型时，执行 `sql/permission_v2.sql`，然后重新登录以刷新 SaSession 中的权限列表。
 
 ### 5.5 网关鉴权规则
 
 - 放行：`/auth/send-code`、`/auth/login`、`/actuator/health/**`、`/error`
 - `OPTIONS` 预检请求直接放行，由 CORS 配置返回响应头
 - 除放行路径外，所有请求必须登录，并校验 SaSession 中的用户状态为 `ACTIVE`
-- `/admin/**`：需要 `admin:manage` 权限（仅 `ADMIN` 角色拥有）
-- `/report/export`：需要 `report:export` 权限（`MEMBER`/`ADMIN`）
-- `/report/**`：需要 `report:read` 权限
-- `/budget/**`：需要 `budget:manage` 权限（`MEMBER`/`ADMIN`）
-- `/ledger/**`、`/account/**`、`/transaction/**`、`/category/**`：需要 `ledger:read` 权限
+- `/admin/**`：需要 `ADMIN` 角色
+- `/agent/**`：需要 `agent:execute` 权限（仅 `ADMIN`）
+- `/plan/**`、`/budget/**`、`/report/**`：需要 `plan:manage` 权限（`MEMBER`/`ADMIN`）
+- `/ledger/**`、`/account/**`、`/transaction/**`、`/category/**`：需要 `bookkeeping:manage` 权限
 - `/user/**`：只需要登录（用于当前用户资料）
 
 网关统一错误响应：
@@ -259,6 +273,90 @@ PUT  /user/profile     # 需要登录，body: {"nickname":"新昵称","avatar":"
 {"code":503,"success":false,"message":"下游服务暂不可用","data":null}
 {"code":500,"success":false,"message":"系统内部错误","data":null}
 ```
+
+### 5.6 用户上下文传递
+
+网关鉴权通过后，`UserContextHeaderFilter` 会把当前用户信息写入内部请求头：
+
+| 请求头 | 内容 |
+| --- | --- |
+| `X-User-Id` | 用户 ID |
+| `X-User-Email` | 邮箱 |
+| `X-User-Roles` | 逗号分隔的角色编码 |
+| `X-User-Permissions` | 逗号分隔的权限编码 |
+
+客户端传入的同名头会先被移除，再写入 SaSession 中的真实值，防止伪造。
+
+用户上下文能力已下沉到 common：`ledger-plan-common` 的 `UserContextInterceptor` 解析这些头并放入
+`UserContextHolder`（ThreadLocal），请求结束时在 `afterCompletion` 中清理。`LedgerPlanWebAutoConfiguration`
+会自动注册该拦截器，所有引入 common 且是 Servlet Web 应用的模块（当前 user、business，以及后续新增的 Web 模块）
+无需重复配置即可使用。业务代码通过 `UserContextHolder.getRequired()` 获取当前用户，例如：
+
+```java
+UserContext user = UserContextHolder.getRequired();
+if (!user.hasPermission("bookkeeping:manage")) {
+    throw new BizException(CommonErrorCode.FORBIDDEN);
+}
+```
+
+`GET /ledger/context` 是用于验证该链路的示例接口。注意：
+
+- 下游端口只应暴露给网关/内网，不能直接暴露公网；否则请求头可被伪造。
+- `agent` 当前只有 common 依赖、没有 Web 层，因此不会自动注册拦截器；等它增加 Servlet Web 入口后会自动生效。
+  如果 agent 通过 Dubbo 被调用，HTTP 请求头不会自动进入 Dubbo 线程，需要在 Dubbo 调用侧用 attachment 传递用户信息，
+  并在 provider 侧写入 `UserContextHolder`；不要假设 ThreadLocal 能跨进程传递。
+- ThreadLocal 不会自动传递到异步线程或 Dubbo 调用，跨线程/跨服务时需要显式传递 `userId`。
+
+### 5.7 一次请求的调用顺序
+
+以 `GET /ledger/context` 为例：
+
+```text
+客户端
+  │
+  ▼
+Gateway 4080
+  │  1. SaReactorFilter（WebFilter）
+  │       设置 SaReactor 上下文 → 校验登录 → 校验角色/权限
+  │       失败：直接写 401/403 JSON，不再转发
+  │
+  │  2. RoutePredicateHandlerMapping 匹配路由 /ledger/**
+  │
+  │  3. GlobalFilter 链（按 order 从小到大）
+  │       UserContextHeaderFilter（HIGHEST_PRECEDENCE + 100）
+  │         删除客户端伪造的 X-User-* → 从 SaSession 写入真实值
+  │       DownstreamUnavailableFilter（LOWEST_PRECEDENCE - 1）
+  │         包住后续路由调用，连接失败/超时 → 503
+  │       NettyRoutingFilter（LOWEST_PRECEDENCE）
+  │         转发到 http://localhost:4083
+  ▼
+business 4083（user 4082 同理）
+  │  4. DispatcherServlet → HandlerMapping 选中 Controller
+  │
+  │  5. SaInterceptor.preHandle（order = 0）
+  │       处理 @SaCheckLogin / @SaCheckPermission 等注解
+  │       失败抛 NotLoginException / NotPermissionException
+  │
+  │  6. UserContextInterceptor.preHandle（order = 1）
+  │       解析 X-User-Id / Email / Roles / Permissions
+  │       写入 UserContextHolder（ThreadLocal）
+  │
+  │  7. Controller 方法执行
+  │       UserContextHolder.getRequired() 可取到当前用户
+  │
+  │  8. UserContextInterceptor.afterCompletion
+  │       清理 ThreadLocal
+  │  9. SaInterceptor.afterCompletion
+  ▼
+Gateway 响应过滤器（逆序回写）→ 客户端
+```
+
+说明：
+
+- 两个 Servlet 拦截器已显式指定 `order`：Sa-Token 为 `0`，用户上下文为 `1`，保证先鉴权、再解析上下文。
+- 如果第 5 步鉴权失败，第 6 步不会执行；异常由 common 的 `GlobalExceptionHandler` 转成统一 JSON。
+- 如果 Controller 抛异常，`afterCompletion` 仍会按注册顺序的逆序执行，ThreadLocal 会被清理，避免线程池串数据。
+- 网关鉴权失败发生在第 1 步，请求不会进入 GlobalFilter 链，也不会到达下游。
 
 ## 6. 网关路由
 
@@ -271,7 +369,7 @@ spring.cloud.gateway.server.webflux.routes:
   - id: ledger-plan-business
     uri: ${BUSINESS_SERVICE_URI:http://localhost:4083}
     predicates:
-      - Path=/ledger/**,/account/**,/transaction/**,/category/**,/budget/**,/report/**
+      - Path=/ledger/**,/account/**,/transaction/**,/category/**,/budget/**,/report/**,/plan/**,/agent/**
 ```
 
 Spring Cloud Gateway 4.3 的配置前缀是 `spring.cloud.gateway.server.webflux`；旧的
@@ -294,11 +392,14 @@ export CORS_ALLOWED_ORIGIN_PATTERNS='https://ledger.example.com'
 - 同一邮箱重复发送验证码返回 429
 - 验证码连续错误 5 次后提示 `4002`
 - CORS 预检返回 `Access-Control-Allow-Origin` 等响应头
-- `UserInfoServiceTest` 6 个单元测试、`DownstreamUnavailableFilterTest` 3 个单元测试通过
+- 网关调用 `/ledger/context` 返回当前用户 ID、邮箱、角色和权限；伪造 `X-User-Id` 会被真实值覆盖
+- 直接访问 business 的 `/ledger/context` 且无内部头时返回 401 JSON
+- user 15 个单元测试、gateway 3 个单元测试、common 5 个用户上下文测试通过
+- 用户上下文拦截器已由 common 自动配置注册，business 不再维护自己的副本；user 与 business 启动均正常
 
 ## 8. 待办
 
-- `ledger-plan-business` 尚未实现，`/ledger/**` 等路由在 business 未启动时返回 503 JSON
+- `ledger-plan-business` 已建立 `cn.cosx.ledgerplan.business` 基础包结构与启动类，业务接口尚未实现；business 未启动时，`/ledger/**` 等路由返回 503 JSON
 - 未接入真实 SMTP 做过发信验证（默认 log provider 已验证）
 - 角色/权限管理接口暂未实现；当前通过 `t_user_role` 维护用户角色
 - 生产环境应把 `allowed-origin-patterns` 收窄，并为 Redis/MySQL 配置独立账号

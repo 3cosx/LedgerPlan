@@ -34,4 +34,6 @@ build/
 
 ### Local tooling ###
 .tmp/
+.m2-local/
+.maven-repo/
 .dsh-ops-update-*.lock

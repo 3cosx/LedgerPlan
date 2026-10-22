@@ -16,6 +16,7 @@ public class SaTokenWebConfiguration implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new SaInterceptor())
                 .addPathPatterns("/**")
-                .excludePathPatterns("/error");
+                .excludePathPatterns("/error")
+                .order(0);
     }
 }

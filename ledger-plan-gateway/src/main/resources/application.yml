@@ -24,7 +24,7 @@ spring:
             - id: ledger-plan-business
               uri: "${BUSINESS_SERVICE_URI:http://localhost:4083}"
               predicates:
-                - Path=/ledger/**,/account/**,/transaction/**,/category/**,/budget/**,/report/**
+                - Path=/ledger/**,/account/**,/transaction/**,/category/**,/budget/**,/report/**,/plan/**,/agent/**
           globalcors:
             add-to-simple-url-handler-mapping: true
             cors-configurations:

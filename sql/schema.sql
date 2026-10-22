@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS `t_role`
 CREATE TABLE IF NOT EXISTS `t_permission`
 (
     `id`          BIGINT      NOT NULL COMMENT '权限ID',
-    `code`        VARCHAR(64) NOT NULL COMMENT '权限编码，如 ledger:read',
+    `code`        VARCHAR(64) NOT NULL COMMENT '权限编码，如 bookkeeping:manage',
     `name`        VARCHAR(32) NOT NULL COMMENT '权限名称',
     `description` VARCHAR(128)         DEFAULT NULL COMMENT '权限说明',
     `create_time` DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -84,34 +84,28 @@ CREATE TABLE IF NOT EXISTS `t_role_permission`
 
 -- 角色：普通 / 会员 / 管理员
 INSERT INTO `t_role` (`id`, `code`, `name`, `description`)
-VALUES (1, 'NORMAL', '普通用户', '基础记账权限'),
-       (2, 'MEMBER', '会员', '基础权限，并可使用报表导出与预算管理'),
-       (3, 'ADMIN', '管理员', '系统全部权限')
+VALUES (1, 'NORMAL', '普通用户', '可使用记账'),
+       (2, 'MEMBER', '会员', '可使用记账和计划规划'),
+       (3, 'ADMIN', '管理员', '可使用全部权限')
 ON DUPLICATE KEY UPDATE `name`       = VALUES(`name`),
                         `description` = VALUES(`description`);
 
--- 权限点
+-- 权限点：记账 / 计划规划 / Agent 执行
 INSERT INTO `t_permission` (`id`, `code`, `name`, `description`)
-VALUES (1, 'ledger:read', '查看账本', '查看账本、流水和分类'),
-       (2, 'ledger:write', '编辑账本', '新增、修改、删除账本数据'),
-       (3, 'account:read', '查看账户', '查看账户列表和余额'),
-       (4, 'account:write', '编辑账户', '新增、修改、删除账户'),
-       (5, 'report:read', '查看报表', '查看统计报表'),
-       (6, 'report:export', '导出报表', '导出报表文件（会员及以上）'),
-       (7, 'budget:manage', '预算管理', '创建和管理预算（会员及以上）'),
-       (8, 'admin:manage', '系统管理', '管理员后台接口'),
-       (9, 'user:manage', '用户管理', '管理用户及其角色')
+VALUES (1, 'bookkeeping:manage', '记账', '记录收支、管理账户与分类'),
+       (2, 'plan:manage', '计划规划', '预算、计划与报表分析'),
+       (3, 'agent:execute', 'Agent 执行', '触发 Agent 执行任务')
 ON DUPLICATE KEY UPDATE `name`       = VALUES(`name`),
                         `description` = VALUES(`description`);
 
--- 普通用户：基础记账与查看报表
+-- 普通用户：记账
 INSERT IGNORE INTO `t_role_permission` (`role_id`, `permission_id`)
-VALUES (1, 1), (1, 2), (1, 3), (1, 4), (1, 5);
+VALUES (1, 1);
 
--- 会员：普通用户权限 + 报表导出 + 预算管理
+-- 会员：记账 + 计划规划
 INSERT IGNORE INTO `t_role_permission` (`role_id`, `permission_id`)
-VALUES (2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7);
+VALUES (2, 1), (2, 2);
 
 -- 管理员：全部权限
 INSERT IGNORE INTO `t_role_permission` (`role_id`, `permission_id`)
-VALUES (3, 1), (3, 2), (3, 3), (3, 4), (3, 5), (3, 6), (3, 7), (3, 8), (3, 9);
+VALUES (3, 1), (3, 2), (3, 3);

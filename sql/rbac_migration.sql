@@ -2,6 +2,8 @@
 -- 使用顺序：
 --   1. 先执行 sql/schema.sql，创建 t_role/t_permission/t_user_role/t_role_permission 并写入种子数据；
 --   2. 再执行本脚本，把旧角色映射为 NORMAL/MEMBER/ADMIN，并删除 t_user.role 列。
+--   3. 如果数据库里仍是旧版权限点，再执行 sql/permission_v2.sql 替换为
+--      记账 / 计划规划 / Agent 执行 三个权限点。
 -- 新建数据库不需要执行本脚本。
 
 USE `ledger_plan`;

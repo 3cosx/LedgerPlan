@@ -1,5 +1,7 @@
 package cn.cosx.ledgerplan.common.config;
 
+import cn.cosx.ledgerplan.common.context.UserContextInterceptor;
+import cn.cosx.ledgerplan.common.context.UserContextWebMvcConfigurer;
 import cn.cosx.ledgerplan.common.web.GlobalExceptionHandler;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -16,5 +18,17 @@ public class LedgerPlanWebAutoConfiguration {
     @ConditionalOnMissingBean
     public GlobalExceptionHandler globalExceptionHandler() {
         return new GlobalExceptionHandler();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public UserContextInterceptor userContextInterceptor() {
+        return new UserContextInterceptor();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public UserContextWebMvcConfigurer userContextWebMvcConfigurer(UserContextInterceptor userContextInterceptor) {
+        return new UserContextWebMvcConfigurer(userContextInterceptor);
     }
 }

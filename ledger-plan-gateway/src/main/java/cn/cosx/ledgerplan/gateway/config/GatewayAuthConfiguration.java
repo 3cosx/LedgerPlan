@@ -39,6 +39,10 @@ public class GatewayAuthConfiguration {
             "/error"
     };
 
+    private static final String PERMISSION_BOOKKEEPING = "bookkeeping:manage";
+    private static final String PERMISSION_PLAN = "plan:manage";
+    private static final String PERMISSION_AGENT = "agent:execute";
+
     @Bean
     public SaReactorFilter saReactorFilter(ObjectMapper objectMapper) {
         return new SaReactorFilter()
@@ -59,18 +63,18 @@ public class GatewayAuthConfiguration {
 
                     String path = exchange == null ? "" : exchange.getRequest().getPath().value();
                     if (matches(path, "/admin")) {
-                        StpUtil.checkPermission("admin:manage");
-                    } else if (matches(path, "/report/export")) {
-                        StpUtil.checkPermission("report:export");
-                    } else if (matches(path, "/report")) {
-                        StpUtil.checkPermission("report:read");
-                    } else if (matches(path, "/budget")) {
-                        StpUtil.checkPermission("budget:manage");
+                        StpUtil.checkRole("ADMIN");
+                    } else if (matches(path, "/agent")) {
+                        StpUtil.checkPermission(PERMISSION_AGENT);
+                    } else if (matches(path, "/plan")
+                            || matches(path, "/budget")
+                            || matches(path, "/report")) {
+                        StpUtil.checkPermission(PERMISSION_PLAN);
                     } else if (matches(path, "/ledger")
                             || matches(path, "/account")
                             || matches(path, "/transaction")
                             || matches(path, "/category")) {
-                        StpUtil.checkPermission("ledger:read");
+                        StpUtil.checkPermission(PERMISSION_BOOKKEEPING);
                     }
                 })
                 // Sa-Token 1.37 的 reactor filter 会把返回值 String.valueOf 后写入响应。

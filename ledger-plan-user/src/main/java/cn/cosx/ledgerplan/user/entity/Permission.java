@@ -10,7 +10,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * RBAC 权限。code 形如 ledger:read、report:export。
+ * RBAC 权限。code 形如 bookkeeping:manage、plan:manage。
  */
 @Data
 @TableName("t_permission")
